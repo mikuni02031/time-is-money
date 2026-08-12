@@ -396,6 +396,44 @@ h1.title span{color:var(--gold);}
 @keyframes flashOut{from{opacity:1}to{opacity:0}}
 #scr-rush.blackout{background:#000;}
 #scr-rush.blackout .rush-hud{opacity:0;}
+/* プチュン (ブラウン管シャットダウン) */
+.pchun{
+  position:absolute;inset:0;background:#000;z-index:8;
+  display:flex;align-items:center;justify-content:center;
+  pointer-events:none;
+}
+.pchun-line{
+  width:100%;height:3px;background:#fff;
+  box-shadow:
+    0 0 14px 4px #6a86ff,
+    0 0 46px 16px rgba(70,100,255,.85),
+    0 0 110px 40px rgba(40,60,220,.5);
+  animation:pchunLine 1s ease-in forwards;
+}
+@keyframes pchunLine{
+  0%  {transform:scale(1,120);opacity:1}
+  22% {transform:scale(1,1)}
+  62% {transform:scale(1,1)}
+  88% {transform:scale(.04,.9)}
+  100%{transform:scale(0,.6);opacity:0}
+}
+.pchun-star{
+  position:absolute;width:0;height:0;opacity:0;
+  animation:pchunStar .55s ease-out .78s forwards;
+}
+.pchun-star::before,.pchun-star::after{
+  content:"";position:absolute;left:50%;top:50%;
+  transform:translate(-50%,-50%);
+  background:radial-gradient(closest-side,#fff 0%,#8fa4ff 35%,transparent 75%);
+}
+.pchun-star::before{width:240px;height:5px;}
+.pchun-star::after{width:5px;height:170px;}
+@keyframes pchunStar{
+  0%{opacity:0;transform:scale(.2)}
+  30%{opacity:1;transform:scale(1.15)}
+  60%{opacity:.9;transform:scale(1)}
+  100%{opacity:0;transform:scale(.1)}
+}
 #scr-rush.shake .rush-stage{animation:shake .5s;}
 @keyframes shake{
   0%,100%{transform:translate(0,0)}
@@ -488,7 +526,8 @@ h1.title span{color:var(--gold);}
 
     <div class="field">
       <div class="field-label">あてる時間</div>
-      <div class="chips" id="time-chips">
+      <div class="chips" id="time-chips" style="grid-template-columns:repeat(5,1fr);">
+        <button class="chip" data-time="5">5秒</button>
         <button class="chip" data-time="10">10秒</button>
         <button class="chip" data-time="15">15秒</button>
         <button class="chip" data-time="30">30秒</button>
@@ -653,6 +692,11 @@ function sndSlash(){
   beep(2200,.06,"sawtooth",.13);
   beep(1100,.1,"sawtooth",.12,.05);
   beep(500,.16,"sawtooth",.1,.11);
+}
+function sndPchun(){
+  beep(1600,.05,"square",.14);
+  beep(700,.07,"square",.12,.05);
+  beep(140,.18,"sine",.14,.1);
 }
 function vibe(p){ if(navigator.vibrate) try{navigator.vibrate(p);}catch(e){} }
 
@@ -915,23 +959,23 @@ function nextRound(){
   }
 
   if(mode === "iwakan"){
-    // 違和感は1コマ目を見せた次の瞬間に777で継続確定!!
-    playCountdown(variant.steps, 1, 450, ()=>revealContinue(variant));
+    // 違和感は1コマ目をしっかり見せて…ワンテンポ置いてから777で継続確定!!
+    playCountdown(variant.steps, 1, 1400, ()=>revealContinue(variant));
     return;
   }
 
   // 通常継続: 見せ方を抽選
   const show = Math.random();
-  if(show < 0.15){
+  if(show < 0.075){
     // 7・6・7が揃って「終了…」→ 6を切り裂いて復活!!
     playCountdown(NORMAL_STEPS, NORMAL_STEPS.length, STEP_MS + 250, revealSlashRevival);
-  }else if(show < 0.37){
+  }else if(show < 0.185){
     // 真ん中が6で止まりかける…「おっはずれかな」→ 7が揃う!!
     playCountdown(NORMAL_STEPS, NORMAL_STEPS.length, STEP_MS + 250, revealNearMiss);
   }else{
-    // 3 / 2 / 1 のどこでカットインするかランダムで即777
+    // 3 / 2 / 1 のどこでカットインするかランダム、ひと呼吸ためて777
     const cut = 1 + Math.floor(Math.random()*NORMAL_STEPS.length);
-    playCountdown(NORMAL_STEPS, cut, 450, ()=>revealContinue(null));
+    playCountdown(NORMAL_STEPS, cut, 1100, ()=>revealContinue(null));
   }
 }
 
@@ -1062,15 +1106,24 @@ function revealSlashRevival(){
       `<div class="rush-sub">6を切り裂いて大逆転!!</div>`), 4200);
 }
 
-/* ---- フリーズ (虹・+5杯) ---- */
+/* ---- フリーズ (プチュン → 虹・+5杯) ---- */
 function playFreeze(){
-  // 「3」で突然静止 → 暗転 → 虹777
+  // 「3」の途中で突然プチュン…と電源が落ちる
   stage().innerHTML = `<div class="count-num">3</div>`;
   sndCount();
+  const cutAt = STEP_MS * 0.8;
   rt(()=>{
     $("scr-rush").classList.add("blackout");
     stage().innerHTML = "";
-  }, STEP_MS * 0.8);
+    const p = document.createElement("div");
+    p.className = "pchun";
+    p.innerHTML = `<div class="pchun-line"></div><div class="pchun-star"></div>`;
+    $("scr-rush").appendChild(p);
+    sndPchun();
+    vibe(90);
+    rt(()=>p.remove(), 1500);
+  }, cutAt);
+  // 真っ暗なまま無音のタメ…からの虹
   rt(()=>{
     $("scr-rush").classList.remove("blackout");
     $("scr-rush").classList.add("flash","shake");
@@ -1093,7 +1146,7 @@ function playFreeze(){
     b.textContent = "次のカウントダウンへ!";
     b.addEventListener("click", nextRound);
     actions().appendChild(b);
-  }, STEP_MS * 0.8 + 1700);
+  }, cutAt + 2600);
 }
 
 /* ---- 終了 ---- */
