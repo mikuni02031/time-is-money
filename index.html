@@ -615,7 +615,10 @@ h1.title span{color:var(--gold);}
       <h3>チャージ中のお酒 🍺</h3>
       <div class="modal-note">飲んだぶんだけ「1杯飲んだ」で減らしてね。チャージは次のゲームにも持ち越し。</div>
       <div class="charge-list" id="charge-list"></div>
-      <button class="btn ghost" id="btn-drink-close">とじる</button>
+      <div class="stack">
+        <button class="btn ghost" id="btn-charge-reset" style="border-color:rgba(232,68,58,.6);color:#FF9C8A;">全部リセット (0杯にする)</button>
+        <button class="btn ghost" id="btn-drink-close">とじる</button>
+      </div>
     </div>
   </div>
 
@@ -1193,7 +1196,11 @@ function openDrinkModal(){
 function renderCharges(){
   const list = $("charge-list");
   list.innerHTML = "";
+  resetArmed = false;
+  const rb = $("btn-charge-reset");
+  rb.textContent = "全部リセット (0杯にする)";
   const entries = Object.entries(charges).filter(([,v])=>v>0);
+  rb.style.display = entries.length === 0 ? "none" : "";
   if(entries.length === 0){
     list.innerHTML = `<div class="empty-note">チャージ中のお酒はありません。<br>ラッシュで貯まったらここに出ます 🍺</div>`;
     return;
@@ -1219,6 +1226,33 @@ function renderCharges(){
     list.appendChild(row);
   });
 }
+let resetArmed = false;
+$("btn-charge-reset").addEventListener("click", ()=>{
+  const rb = $("btn-charge-reset");
+  if(!resetArmed){
+    resetArmed = true;
+    rb.textContent = "本当に全部0にする? (もう一度タップ)";
+    rb.style.background = "linear-gradient(180deg,#FF7A64,var(--red))";
+    rb.style.color = "#fff";
+    setTimeout(()=>{
+      if(resetArmed){
+        resetArmed = false;
+        rb.textContent = "全部リセット (0杯にする)";
+        rb.style.background = "";
+        rb.style.color = "#FF9C8A";
+      }
+    }, 3000);
+    return;
+  }
+  charges = {};
+  saveCharges();
+  const rb2 = $("btn-charge-reset");
+  rb2.style.background = "";
+  rb2.style.color = "#FF9C8A";
+  renderCharges();
+  refreshTop();
+  beep(300,.15,"triangle",.12);
+});
 $("btn-drink-close").addEventListener("click", ()=>$("drink-modal").classList.remove("open"));
 $("drink-modal").addEventListener("click", (e)=>{
   if(e.target === $("drink-modal")) $("drink-modal").classList.remove("open");
