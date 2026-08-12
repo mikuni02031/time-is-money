@@ -1,0 +1,1048 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#130E1E">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
+<link rel="icon" type="image/png" sizes="512x512" href="icon-512.png">
+<title>時感 -TOKIKAN- 時間あてゲーム</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=RocknRoll+One&family=Zen+Maru+Gothic:wght@500;700;900&family=Shippori+Mincho:wght@800&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#130E1E;
+  --bg2:#221838;
+  --red:#E8443A;
+  --red-deep:#A61E1E;
+  --gold:#F5C542;
+  --gold-deep:#C98A12;
+  --cream:#FFF6E3;
+  --dim:#9A8FB8;
+  --safe-top:env(safe-area-inset-top,0px);
+  --safe-bottom:env(safe-area-inset-bottom,0px);
+}
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+html,body{height:100%;}
+body{
+  background:var(--bg);
+  color:var(--cream);
+  font-family:"Zen Maru Gothic",sans-serif;
+  overflow:hidden;
+  touch-action:manipulation;
+  -webkit-user-select:none;user-select:none;
+}
+#app{
+  position:relative;
+  max-width:480px;
+  margin:0 auto;
+  height:100dvh;
+  overflow:hidden;
+  background:
+    radial-gradient(120% 60% at 50% -10%, #35244F 0%, transparent 60%),
+    var(--bg);
+}
+.screen{
+  position:absolute;inset:0;
+  display:none;
+  flex-direction:column;
+  padding:calc(16px + var(--safe-top)) 20px calc(20px + var(--safe-bottom));
+  overflow-y:auto;
+  -webkit-overflow-scrolling:touch;
+}
+.screen.active{display:flex;}
+
+/* ===== 共通ボタン ===== */
+.btn{
+  font-family:"Zen Maru Gothic",sans-serif;
+  font-weight:900;
+  border:none;border-radius:18px;
+  padding:16px 20px;
+  font-size:18px;
+  color:#3A1C00;
+  background:linear-gradient(180deg,#FFE08A 0%,var(--gold) 45%,var(--gold-deep) 100%);
+  box-shadow:0 4px 0 #7A5306, 0 8px 18px rgba(0,0,0,.45);
+  cursor:pointer;
+  width:100%;
+  transition:transform .06s;
+}
+.btn:active{transform:translateY(3px);box-shadow:0 1px 0 #7A5306;}
+.btn.red{
+  color:#FFF6E3;
+  background:linear-gradient(180deg,#FF7A64 0%,var(--red) 45%,var(--red-deep) 100%);
+  box-shadow:0 4px 0 #5F0E0E, 0 8px 18px rgba(0,0,0,.45);
+}
+.btn.red:active{box-shadow:0 1px 0 #5F0E0E;}
+.btn.ghost{
+  color:var(--cream);
+  background:rgba(255,246,227,.07);
+  border:2px solid rgba(255,246,227,.3);
+  box-shadow:none;
+}
+.btn.ghost:active{transform:translateY(2px);}
+.stack{display:flex;flex-direction:column;gap:14px;width:100%;}
+
+/* ===== トップ ===== */
+#scr-top{justify-content:space-between;align-items:center;text-align:center;}
+.lanterns{
+  display:flex;justify-content:space-between;width:100%;
+  font-size:34px;
+  filter:drop-shadow(0 0 10px rgba(232,68,58,.6));
+  animation:sway 3.4s ease-in-out infinite alternate;
+}
+@keyframes sway{from{transform:rotate(-2deg)}to{transform:rotate(2deg)}}
+.title-block{margin-top:6dvh;}
+.title-sub{
+  letter-spacing:.5em;
+  font-size:13px;color:var(--gold);
+  margin-bottom:10px;
+}
+h1.title{
+  font-family:"RocknRoll One",sans-serif;
+  font-size:clamp(56px,20vw,86px);
+  line-height:1.05;
+  color:var(--cream);
+  text-shadow:
+    0 0 18px rgba(245,197,66,.35),
+    4px 4px 0 var(--red-deep);
+}
+h1.title span{color:var(--gold);}
+.title-caption{margin-top:14px;color:var(--dim);font-size:14px;line-height:1.7;}
+.top-charge{
+  margin-top:12px;font-size:13px;color:var(--gold);
+  min-height:1.4em;
+}
+#scr-top .stack{max-width:320px;}
+
+/* ===== 設定 ===== */
+.head{
+  display:flex;align-items:center;gap:12px;margin-bottom:18px;
+}
+.head h2{
+  font-family:"RocknRoll One",sans-serif;
+  font-size:24px;letter-spacing:.1em;
+}
+.back-btn{
+  background:none;border:2px solid rgba(255,246,227,.3);color:var(--cream);
+  border-radius:12px;padding:8px 14px;font-size:15px;font-weight:700;
+  font-family:inherit;cursor:pointer;
+}
+.field{margin-bottom:22px;}
+.field-label{
+  font-size:13px;color:var(--gold);letter-spacing:.15em;
+  margin-bottom:10px;font-weight:700;
+}
+.stepper{
+  display:flex;align-items:center;gap:18px;justify-content:center;
+  background:var(--bg2);border-radius:16px;padding:10px;
+}
+.stepper button{
+  width:52px;height:52px;border-radius:14px;border:none;
+  font-size:28px;font-weight:900;color:#3A1C00;
+  background:linear-gradient(180deg,#FFE08A,var(--gold));
+  cursor:pointer;font-family:inherit;
+}
+.stepper button:active{transform:scale(.94);}
+.stepper .num{
+  font-family:"RocknRoll One",sans-serif;font-size:34px;width:70px;text-align:center;
+}
+.name-list{display:flex;flex-direction:column;gap:10px;}
+.name-list input{
+  font-family:inherit;font-weight:700;
+  background:var(--bg2);border:2px solid rgba(255,246,227,.15);
+  border-radius:14px;color:var(--cream);
+  padding:14px;font-size:17px;width:100%;
+}
+.name-list input:focus{outline:none;border-color:var(--gold);}
+.chips{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;}
+.chip{
+  border:2px solid rgba(255,246,227,.2);
+  background:var(--bg2);color:var(--cream);
+  border-radius:14px;padding:14px 4px;
+  font-size:16px;font-weight:900;font-family:inherit;cursor:pointer;
+}
+.chip.sel{
+  background:linear-gradient(180deg,#FF7A64,var(--red));
+  border-color:#FFB3A6;color:#fff;
+  box-shadow:0 0 14px rgba(232,68,58,.5);
+}
+.rate-row{
+  display:flex;align-items:center;gap:14px;
+  background:var(--bg2);border-radius:16px;padding:14px;margin-bottom:10px;
+}
+.rate-row .rate-name{flex:1;font-size:14px;font-weight:700;}
+.rate-row .rate-name small{display:block;color:var(--dim);font-weight:500;font-size:11px;margin-top:2px;}
+.rate-ctl{display:flex;align-items:center;gap:8px;}
+.rate-ctl button{
+  width:40px;height:40px;border-radius:12px;border:none;font-size:20px;font-weight:900;
+  color:#3A1C00;background:linear-gradient(180deg,#FFE08A,var(--gold));
+  cursor:pointer;font-family:inherit;
+}
+.rate-val{
+  font-family:"RocknRoll One",sans-serif;font-size:20px;width:64px;text-align:center;color:var(--gold);
+}
+
+/* ===== ゲーム ===== */
+#scr-game{align-items:center;justify-content:flex-start;text-align:center;}
+.turn-label{
+  margin-top:2dvh;font-size:14px;color:var(--dim);letter-spacing:.2em;
+}
+.turn-name{
+  font-family:"RocknRoll One",sans-serif;
+  font-size:clamp(30px,9vw,42px);
+  margin:6px 0 2px;color:var(--cream);
+}
+.target-badge{
+  display:inline-block;margin-top:10px;
+  background:var(--bg2);border:2px solid var(--gold);
+  color:var(--gold);border-radius:999px;
+  padding:8px 22px;font-weight:900;font-size:17px;
+}
+.big-btn-wrap{
+  flex:1;display:flex;align-items:center;justify-content:center;width:100%;
+  min-height:300px;
+}
+.big-btn{
+  width:min(66vw,270px);aspect-ratio:1;
+  border-radius:50%;border:none;cursor:pointer;
+  font-family:"RocknRoll One",sans-serif;
+  font-size:44px;color:#3A1C00;
+  background:radial-gradient(circle at 35% 30%,#FFF0BE 0%,var(--gold) 45%,var(--gold-deep) 100%);
+  box-shadow:0 10px 0 #7A5306, 0 22px 40px rgba(0,0,0,.55), inset 0 -8px 20px rgba(0,0,0,.15);
+  transition:transform .07s;
+}
+.big-btn:active{transform:translateY(7px);box-shadow:0 3px 0 #7A5306, 0 10px 24px rgba(0,0,0,.5);}
+.big-btn.stop{
+  color:#FFF6E3;
+  background:radial-gradient(circle at 35% 30%,#FF9C8A 0%,var(--red) 50%,var(--red-deep) 100%);
+  box-shadow:0 10px 0 #5F0E0E, 0 22px 40px rgba(0,0,0,.55), inset 0 -8px 20px rgba(0,0,0,.2);
+  animation:pulse 1s ease-in-out infinite;
+}
+.big-btn.stop:active{box-shadow:0 3px 0 #5F0E0E;}
+@keyframes pulse{0%,100%{filter:brightness(1)}50%{filter:brightness(1.18)}}
+.measuring{
+  font-size:14px;color:var(--dim);letter-spacing:.3em;height:1.5em;
+}
+.measuring .dots::after{content:"…";animation:dots 1.2s steps(3) infinite;}
+@keyframes dots{0%{content:""}33%{content:"・"}66%{content:"・・"}100%{content:"・・・"}}
+.diff-view{display:none;flex-direction:column;align-items:center;gap:8px;}
+.diff-num{
+  font-family:"RocknRoll One",sans-serif;
+  font-size:clamp(52px,17vw,76px);
+  color:var(--gold);
+  text-shadow:3px 3px 0 var(--red-deep);
+}
+.diff-desc{color:var(--dim);font-size:15px;}
+.game-progress{margin-bottom:8px;color:var(--dim);font-size:13px;letter-spacing:.15em;}
+
+/* ===== リザルト ===== */
+#scr-result{align-items:center;}
+.result-title{
+  font-family:"RocknRoll One",sans-serif;font-size:32px;letter-spacing:.15em;
+  margin:1dvh 0 18px;color:var(--gold);
+  text-shadow:2px 2px 0 var(--red-deep);
+}
+.rank-list{width:100%;display:flex;flex-direction:column;gap:10px;margin-bottom:22px;}
+.rank-item{
+  display:flex;align-items:center;gap:12px;
+  background:var(--bg2);border-radius:16px;padding:14px 16px;
+  border:2px solid transparent;
+}
+.rank-item .pos{
+  font-family:"RocknRoll One",sans-serif;font-size:20px;width:44px;color:var(--dim);
+}
+.rank-item .pname{flex:1;font-weight:900;font-size:17px;text-align:left;}
+.rank-item .pdiff{font-family:"RocknRoll One",sans-serif;font-size:17px;color:var(--gold);}
+.rank-item.out{
+  border-color:var(--red);
+  background:linear-gradient(180deg,#3A1220,#2A0E18);
+  box-shadow:0 0 18px rgba(232,68,58,.35);
+}
+.rank-item.out .pos{color:var(--red);}
+.out-badge{
+  background:var(--red);color:#fff;font-size:11px;font-weight:900;
+  border-radius:6px;padding:3px 8px;letter-spacing:.1em;
+}
+
+/* ===== ラッシュ ===== */
+#scr-rush{
+  padding:0;overflow:hidden;
+  background:
+    radial-gradient(100% 70% at 50% 100%, #4A1010 0%, transparent 55%),
+    radial-gradient(120% 60% at 50% -10%, #35244F 0%, transparent 60%),
+    #0D0814;
+}
+.rush-hud{
+  position:absolute;top:calc(10px + var(--safe-top));left:0;right:0;
+  display:flex;justify-content:space-between;padding:0 18px;
+  font-size:13px;font-weight:700;color:var(--gold);z-index:5;
+}
+.rush-stage{
+  position:absolute;inset:0;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  text-align:center;padding:20px;
+}
+.count-num{
+  font-family:"RocknRoll One",sans-serif;
+  font-size:min(58vw,300px);
+  line-height:1;
+  color:var(--gold);
+  text-shadow:
+    0 0 30px rgba(245,197,66,.55),
+    6px 6px 0 var(--red-deep);
+  animation:zoomIn .55s cubic-bezier(.2,1.6,.4,1);
+}
+@keyframes zoomIn{from{transform:scale(2.4);opacity:0}to{transform:scale(1);opacity:1}}
+.count-num.red3{color:#FF2A1C;text-shadow:0 0 34px rgba(255,42,28,.8),6px 6px 0 #4A0505;}
+.count-num.mincho{font-family:"Shippori Mincho",serif;}
+.count-num.word{font-size:min(20vw,110px);}
+.count-kirin{
+  position:absolute;font-size:min(26vw,120px);
+  right:6%;bottom:18%;
+  animation:zoomIn .5s cubic-bezier(.2,1.6,.4,1);
+  filter:drop-shadow(0 0 12px rgba(245,197,66,.5));
+}
+.rush-msg{
+  font-family:"RocknRoll One",sans-serif;
+  font-size:clamp(30px,10vw,52px);
+  color:var(--cream);
+  text-shadow:3px 3px 0 var(--red-deep);
+  animation:zoomIn .5s cubic-bezier(.2,1.6,.4,1);
+}
+.rush-sub{margin-top:14px;font-size:16px;color:var(--dim);animation:fadeIn .8s;}
+@keyframes fadeIn{from{opacity:0}to{opacity:1}}
+.slot-row{display:flex;gap:14px;margin:10px 0 22px;}
+.slot{
+  width:min(24vw,110px);aspect-ratio:.78;
+  border-radius:16px;
+  background:linear-gradient(180deg,#2C2144,#171028);
+  border:3px solid var(--gold);
+  display:flex;align-items:center;justify-content:center;
+  font-family:"RocknRoll One",sans-serif;
+  font-size:min(15vw,66px);
+  color:var(--gold);
+  box-shadow:0 0 18px rgba(245,197,66,.25), inset 0 4px 12px rgba(0,0,0,.6);
+  opacity:0;
+}
+.slot.show{opacity:1;animation:slotPop .4s cubic-bezier(.2,1.8,.4,1);}
+@keyframes slotPop{from{transform:translateY(-60px) scale(1.6);opacity:0}to{transform:none;opacity:1}}
+.slot.miss{color:var(--dim);border-color:rgba(255,246,227,.25);box-shadow:none;}
+.slot.rainbow{
+  border-image:linear-gradient(45deg,#f00,#ff8000,#ff0,#0f0,#0af,#80f) 1;
+  border-radius:0;
+}
+.rainbow-text{
+  background:linear-gradient(90deg,#ff3b3b,#ffa02e,#ffe93b,#4bf05a,#3bc7ff,#b04bff,#ff3b3b);
+  background-size:300% 100%;
+  -webkit-background-clip:text;background-clip:text;
+  color:transparent;
+  animation:rainbowMove 1.6s linear infinite, zoomIn .5s cubic-bezier(.2,1.6,.4,1);
+}
+@keyframes rainbowMove{from{background-position:0% 0}to{background-position:300% 0}}
+.charge-pop{
+  margin-top:16px;
+  font-family:"RocknRoll One",sans-serif;
+  font-size:clamp(22px,7vw,32px);
+  color:var(--gold);
+  animation:zoomIn .5s .2s cubic-bezier(.2,1.6,.4,1) backwards;
+}
+.rush-actions{
+  position:absolute;left:20px;right:20px;bottom:calc(24px + var(--safe-bottom));
+  display:flex;flex-direction:column;gap:12px;z-index:5;
+}
+#scr-rush.flash::after{
+  content:"";position:absolute;inset:0;background:#fff;
+  animation:flashOut .35s forwards;pointer-events:none;z-index:9;
+}
+@keyframes flashOut{from{opacity:1}to{opacity:0}}
+#scr-rush.blackout{background:#000;}
+#scr-rush.blackout .rush-hud{opacity:0;}
+#scr-rush.shake .rush-stage{animation:shake .5s;}
+@keyframes shake{
+  0%,100%{transform:translate(0,0)}
+  20%{transform:translate(-8px,4px)}40%{transform:translate(8px,-4px)}
+  60%{transform:translate(-6px,-3px)}80%{transform:translate(6px,3px)}
+}
+
+/* ===== モーダル (飲むよ) ===== */
+.modal-bg{
+  position:absolute;inset:0;z-index:20;
+  background:rgba(6,3,12,.82);
+  display:none;align-items:flex-end;justify-content:center;
+}
+.modal-bg.open{display:flex;}
+.modal{
+  width:100%;max-width:480px;
+  background:var(--bg2);
+  border-radius:26px 26px 0 0;
+  padding:24px 20px calc(24px + var(--safe-bottom));
+  animation:slideUp .28s cubic-bezier(.2,1.2,.4,1);
+}
+@keyframes slideUp{from{transform:translateY(60%)}to{transform:none}}
+.modal h3{
+  font-family:"RocknRoll One",sans-serif;font-size:22px;color:var(--gold);
+  margin-bottom:4px;
+}
+.modal .modal-note{color:var(--dim);font-size:12px;margin-bottom:16px;}
+.charge-list{display:flex;flex-direction:column;gap:10px;margin-bottom:18px;max-height:44dvh;overflow-y:auto;}
+.charge-row{
+  display:flex;align-items:center;gap:12px;
+  background:var(--bg);border-radius:14px;padding:12px 14px;
+}
+.charge-row .cname{flex:1;font-weight:900;font-size:16px;}
+.charge-row .ccount{
+  font-family:"RocknRoll One",sans-serif;font-size:22px;color:var(--gold);
+  min-width:70px;text-align:right;
+}
+.drink-btn{
+  border:none;border-radius:12px;padding:10px 14px;
+  font-family:inherit;font-weight:900;font-size:14px;cursor:pointer;
+  color:#fff;background:linear-gradient(180deg,#FF7A64,var(--red));
+}
+.drink-btn:disabled{opacity:.3;}
+.empty-note{color:var(--dim);text-align:center;padding:20px 0;font-size:14px;}
+
+@media (prefers-reduced-motion: reduce){
+  *,*::before,*::after{animation-duration:.001s !important;animation-iteration-count:1 !important;}
+}
+</style>
+</head>
+<body>
+<div id="app">
+
+  <!-- ===== トップ ===== -->
+  <section class="screen active" id="scr-top">
+    <div class="lanterns"><span>🏮</span><span>🏮</span><span>🏮</span></div>
+    <div class="title-block">
+      <div class="title-sub">— 体内時計バトル —</div>
+      <h1 class="title">時<span>感</span></h1>
+      <div class="title-caption">狙った秒数ピッタリで止めろ。<br>いちばんズレたやつが、お酒ラッシュ行き。</div>
+      <div class="top-charge" id="top-charge"></div>
+    </div>
+    <div class="stack">
+      <button class="btn red" id="btn-start">はじめから</button>
+      <button class="btn" id="btn-settings">設定</button>
+      <button class="btn ghost" id="btn-drink">飲むよ 🍺</button>
+    </div>
+  </section>
+
+  <!-- ===== 設定 ===== -->
+  <section class="screen" id="scr-settings">
+    <div class="head">
+      <button class="back-btn" id="btn-settings-back">← 戻る</button>
+      <h2>設定</h2>
+    </div>
+
+    <div class="field">
+      <div class="field-label">人数</div>
+      <div class="stepper">
+        <button id="pc-minus">−</button>
+        <div class="num" id="pc-num">2</div>
+        <button id="pc-plus">＋</button>
+      </div>
+    </div>
+
+    <div class="field">
+      <div class="field-label">名前</div>
+      <div class="name-list" id="name-list"></div>
+    </div>
+
+    <div class="field">
+      <div class="field-label">あてる時間</div>
+      <div class="chips" id="time-chips">
+        <button class="chip" data-time="10">10秒</button>
+        <button class="chip" data-time="15">15秒</button>
+        <button class="chip" data-time="30">30秒</button>
+        <button class="chip" data-time="60">1分</button>
+      </div>
+    </div>
+
+    <div class="field">
+      <div class="field-label">ラッシュ確率設定</div>
+      <div class="rate-row">
+        <div class="rate-name">継続率<small>初回は必ず継続 (100%)</small></div>
+        <div class="rate-ctl">
+          <button data-rate="keizoku" data-d="-5">−</button>
+          <div class="rate-val" id="rate-keizoku">75%</div>
+          <button data-rate="keizoku" data-d="5">＋</button>
+        </div>
+      </div>
+      <div class="rate-row">
+        <div class="rate-name">フリーズ率<small>継続のうち発生・虹でお酒+5杯</small></div>
+        <div class="rate-ctl">
+          <button data-rate="freeze" data-d="-1">−</button>
+          <div class="rate-val" id="rate-freeze">5%</div>
+          <button data-rate="freeze" data-d="1">＋</button>
+        </div>
+      </div>
+      <div class="rate-row">
+        <div class="rate-name">違和感演出率<small>継続のうち発生・出たら継続確定</small></div>
+        <div class="rate-ctl">
+          <button data-rate="iwakan" data-d="-5">−</button>
+          <div class="rate-val" id="rate-iwakan">20%</div>
+          <button data-rate="iwakan" data-d="5">＋</button>
+        </div>
+      </div>
+    </div>
+
+    <button class="btn" id="btn-settings-save">保存してトップへ</button>
+  </section>
+
+  <!-- ===== ゲーム ===== -->
+  <section class="screen" id="scr-game">
+    <div class="game-progress" id="game-progress"></div>
+    <div class="turn-label">つぎの挑戦者</div>
+    <div class="turn-name" id="turn-name">プレイヤー1</div>
+    <div class="target-badge" id="target-badge">目標 15秒</div>
+
+    <div class="big-btn-wrap">
+      <button class="big-btn" id="big-btn">START</button>
+    </div>
+
+    <div class="measuring" id="measuring"></div>
+
+    <div class="diff-view" id="diff-view">
+      <div class="diff-num" id="diff-num">+0.00秒</div>
+      <div class="diff-desc" id="diff-desc"></div>
+      <div class="stack" style="margin-top:14px;">
+        <button class="btn red" id="btn-next-player">次のプレイヤーへ</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== リザルト ===== -->
+  <section class="screen" id="scr-result">
+    <div class="result-title">RESULT</div>
+    <div class="rank-list" id="rank-list"></div>
+    <div class="stack">
+      <button class="btn red" id="btn-goto-rush">お酒ラッシュへ 🍺</button>
+      <button class="btn" id="btn-retry">もう一回あそぶ</button>
+      <button class="btn ghost" id="btn-result-top">トップへ</button>
+    </div>
+  </section>
+
+  <!-- ===== ラッシュ ===== -->
+  <section class="screen" id="scr-rush">
+    <div class="rush-hud">
+      <div id="rush-player">—</div>
+      <div id="rush-status">1回転目</div>
+    </div>
+    <div class="rush-stage" id="rush-stage"></div>
+    <div class="rush-actions" id="rush-actions"></div>
+  </section>
+
+  <!-- ===== 飲むよモーダル ===== -->
+  <div class="modal-bg" id="drink-modal">
+    <div class="modal">
+      <h3>チャージ中のお酒 🍺</h3>
+      <div class="modal-note">飲んだぶんだけ「1杯飲んだ」で減らしてね。チャージは次のゲームにも持ち越し。</div>
+      <div class="charge-list" id="charge-list"></div>
+      <button class="btn ghost" id="btn-drink-close">とじる</button>
+    </div>
+  </div>
+
+</div>
+
+<script>
+"use strict";
+const $ = id => document.getElementById(id);
+
+/* =========================================================
+   保存データ
+========================================================= */
+const LS_SETTINGS = "tokikan_settings_v1";
+const LS_CHARGES  = "tokikan_charges_v1";
+
+let settings = {
+  count: 2,
+  names: ["プレイヤー1", "プレイヤー2"],
+  time: 15,        // 秒
+  keizoku: 75,     // 継続率 %
+  freeze: 5,       // フリーズ率 % (継続のうち)
+  iwakan: 20       // 違和感率 % (継続のうち)
+};
+let charges = {};  // { 名前: 杯数 }
+
+function loadData(){
+  try{
+    const s = JSON.parse(localStorage.getItem(LS_SETTINGS));
+    if(s && Array.isArray(s.names)) settings = Object.assign(settings, s);
+  }catch(e){}
+  try{
+    const c = JSON.parse(localStorage.getItem(LS_CHARGES));
+    if(c && typeof c === "object") charges = c;
+  }catch(e){}
+}
+function saveSettings(){ localStorage.setItem(LS_SETTINGS, JSON.stringify(settings)); }
+function saveCharges(){ localStorage.setItem(LS_CHARGES, JSON.stringify(charges)); }
+
+/* =========================================================
+   サウンド (WebAudio)
+========================================================= */
+let audioCtx = null;
+function ensureAudio(){
+  try{
+    if(!audioCtx) audioCtx = new (window.AudioContext||window.webkitAudioContext)();
+    if(audioCtx.state === "suspended") audioCtx.resume();
+  }catch(e){}
+}
+function beep(freq, dur, type, vol, delay){
+  if(!audioCtx) return;
+  try{
+    const t0 = audioCtx.currentTime + (delay||0);
+    const o = audioCtx.createOscillator();
+    const g = audioCtx.createGain();
+    o.type = type || "square";
+    o.frequency.value = freq;
+    g.gain.setValueAtTime(vol==null?0.12:vol, t0);
+    g.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
+    o.connect(g); g.connect(audioCtx.destination);
+    o.start(t0); o.stop(t0 + dur + 0.05);
+  }catch(e){}
+}
+const sndCount   = () => beep(520, .18, "square", .1);
+const sndCountHi = () => beep(760, .2,  "square", .1);
+const sndSlot    = () => beep(880, .12, "triangle", .14);
+function sndJackpot(){
+  [523,659,784,1047,1319].forEach((f,i)=>beep(f,.3,"triangle",.14,i*.11));
+}
+function sndFail(){ beep(220,.4,"sawtooth",.09); beep(160,.6,"sawtooth",.09,.25); }
+function sndFreeze(){
+  [1047,1319,1568,2093,1568,2093,2637].forEach((f,i)=>beep(f,.22,"triangle",.13,i*.09));
+}
+function vibe(p){ if(navigator.vibrate) try{navigator.vibrate(p);}catch(e){} }
+
+/* =========================================================
+   画面切り替え
+========================================================= */
+function showScreen(id){
+  document.querySelectorAll(".screen").forEach(s=>s.classList.remove("active"));
+  $(id).classList.add("active");
+}
+
+/* =========================================================
+   トップ
+========================================================= */
+function totalCharges(){
+  return Object.values(charges).reduce((a,b)=>a+(b||0),0);
+}
+function refreshTop(){
+  const t = totalCharges();
+  $("top-charge").textContent = t > 0 ? `🍺 チャージ中のお酒 合計 ${t}杯` : "";
+}
+$("btn-start").addEventListener("click", ()=>{ ensureAudio(); startGame(); });
+$("btn-settings").addEventListener("click", ()=>{ renderSettings(); showScreen("scr-settings"); });
+$("btn-drink").addEventListener("click", openDrinkModal);
+
+/* =========================================================
+   設定
+========================================================= */
+function renderSettings(){
+  $("pc-num").textContent = settings.count;
+  const list = $("name-list");
+  list.innerHTML = "";
+  for(let i=0;i<settings.count;i++){
+    const inp = document.createElement("input");
+    inp.type = "text";
+    inp.maxLength = 10;
+    inp.placeholder = `プレイヤー${i+1}`;
+    inp.value = settings.names[i] || "";
+    inp.addEventListener("input", ()=>{ settings.names[i] = inp.value; });
+    list.appendChild(inp);
+  }
+  document.querySelectorAll("#time-chips .chip").forEach(ch=>{
+    ch.classList.toggle("sel", Number(ch.dataset.time) === settings.time);
+  });
+  $("rate-keizoku").textContent = settings.keizoku + "%";
+  $("rate-freeze").textContent  = settings.freeze  + "%";
+  $("rate-iwakan").textContent  = settings.iwakan  + "%";
+}
+$("pc-minus").addEventListener("click", ()=>{
+  if(settings.count > 2){ settings.count--; renderSettings(); }
+});
+$("pc-plus").addEventListener("click", ()=>{
+  if(settings.count < 8){ settings.count++; renderSettings(); }
+});
+document.querySelectorAll("#time-chips .chip").forEach(ch=>{
+  ch.addEventListener("click", ()=>{ settings.time = Number(ch.dataset.time); renderSettings(); });
+});
+document.querySelectorAll(".rate-ctl button").forEach(b=>{
+  b.addEventListener("click", ()=>{
+    const key = b.dataset.rate, d = Number(b.dataset.d);
+    settings[key] = Math.min(100, Math.max(0, settings[key] + d));
+    renderSettings();
+  });
+});
+function normalizeNames(){
+  const used = {};
+  for(let i=0;i<settings.count;i++){
+    let n = (settings.names[i]||"").trim() || `プレイヤー${i+1}`;
+    if(used[n]){ used[n]++; n = `${n}${used[n]}`; } else used[n] = 1;
+    settings.names[i] = n;
+  }
+  settings.names.length = settings.count;
+}
+$("btn-settings-save").addEventListener("click", ()=>{
+  normalizeNames(); saveSettings(); refreshTop(); showScreen("scr-top");
+});
+$("btn-settings-back").addEventListener("click", ()=>{
+  normalizeNames(); saveSettings(); refreshTop(); showScreen("scr-top");
+});
+
+/* =========================================================
+   ゲーム本編
+========================================================= */
+let game = null; // {idx, results:[{name,diff}], t0, phase}
+let stopLockUntil = 0;
+
+function startGame(){
+  normalizeNames(); saveSettings();
+  game = { idx: 0, results: [], t0: 0, phase: "ready" };
+  renderTurn();
+  showScreen("scr-game");
+}
+function fmtTime(sec){ return sec === 60 ? "1分" : sec + "秒"; }
+function renderTurn(){
+  const name = settings.names[game.idx];
+  $("game-progress").textContent = `${game.idx+1} / ${settings.count} 人目`;
+  $("turn-name").textContent = name;
+  $("target-badge").textContent = `目標 ${fmtTime(settings.time)}`;
+  const btn = $("big-btn");
+  btn.textContent = "START";
+  btn.classList.remove("stop");
+  btn.style.display = "";
+  $("measuring").innerHTML = "";
+  $("diff-view").style.display = "none";
+  game.phase = "ready";
+}
+$("big-btn").addEventListener("pointerdown", (e)=>{
+  e.preventDefault();
+  ensureAudio();
+  const btn = $("big-btn");
+  if(game.phase === "ready"){
+    game.t0 = performance.now();
+    game.phase = "running";
+    stopLockUntil = game.t0 + 600; // 押した直後の誤タップ防止
+    btn.textContent = "STOP";
+    btn.classList.add("stop");
+    $("measuring").innerHTML = `計測中<span class="dots"></span> 画面から時間はわかりません`;
+    beep(660,.15,"square",.1);
+    vibe(30);
+  }else if(game.phase === "running"){
+    const now = performance.now();
+    if(now < stopLockUntil) return;
+    const elapsed = (now - game.t0) / 1000;
+    const diff = elapsed - settings.time;
+    game.phase = "done";
+    game.results.push({ name: settings.names[game.idx], diff });
+    showDiff(diff);
+    vibe(60);
+  }
+});
+function showDiff(diff){
+  $("big-btn").style.display = "none";
+  $("measuring").innerHTML = "";
+  const sign = diff >= 0 ? "+" : "−";
+  $("diff-num").textContent = `${sign}${Math.abs(diff).toFixed(2)}秒`;
+  const a = Math.abs(diff);
+  let desc;
+  if(a < 0.15)      desc = "神業!! 体内時計が正確すぎる";
+  else if(a < 0.5)  desc = "おみごと! かなり近い";
+  else if(a < 1.5)  desc = "まずまず。生き残れるか…?";
+  else if(a < 3)    desc = "だいぶズレてる…雲行きあやしい";
+  else              desc = diff > 0 ? "寝てた? 行きすぎです" : "せっかちすぎる!!";
+  $("diff-desc").textContent = desc;
+  $("btn-next-player").textContent =
+    game.idx === settings.count - 1 ? "リザルトを見る" : "次のプレイヤーへ";
+  $("diff-view").style.display = "flex";
+  sndSlot();
+}
+$("btn-next-player").addEventListener("click", ()=>{
+  if(game.idx === settings.count - 1){ showResult(); }
+  else { game.idx++; renderTurn(); }
+});
+
+/* =========================================================
+   リザルト
+========================================================= */
+let loserName = null;
+function showResult(){
+  const sorted = [...game.results].sort((a,b)=>Math.abs(a.diff)-Math.abs(b.diff));
+  loserName = sorted[sorted.length-1].name;
+  const list = $("rank-list");
+  list.innerHTML = "";
+  sorted.forEach((r,i)=>{
+    const isOut = i === sorted.length - 1;
+    const div = document.createElement("div");
+    div.className = "rank-item" + (isOut ? " out" : "");
+    const sign = r.diff >= 0 ? "+" : "−";
+    div.innerHTML = `
+      <div class="pos">${isOut ? "OUT" : (i+1) + "位"}</div>
+      <div class="pname">${escapeHtml(r.name)}${isOut ? ' <span class="out-badge">お酒ラッシュ</span>' : ""}</div>
+      <div class="pdiff">${sign}${Math.abs(r.diff).toFixed(2)}秒</div>`;
+    list.appendChild(div);
+  });
+  $("btn-goto-rush").textContent = `${loserName} のお酒ラッシュへ 🍺`;
+  showScreen("scr-result");
+  sndCountHi();
+}
+function escapeHtml(s){
+  return String(s).replace(/[&<>"']/g, m => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[m]));
+}
+$("btn-retry").addEventListener("click", startGame);
+$("btn-result-top").addEventListener("click", ()=>{ refreshTop(); showScreen("scr-top"); });
+$("btn-goto-rush").addEventListener("click", ()=>{ ensureAudio(); startRush(loserName); });
+
+/* =========================================================
+   お酒ラッシュ (源さん風 3・2・1 カウント)
+========================================================= */
+let rush = null;   // {player, round, drinks}
+let rushTimers = [];
+function rt(fn, ms){ rushTimers.push(setTimeout(fn, ms)); }
+function clearRushTimers(){ rushTimers.forEach(clearTimeout); rushTimers = []; }
+
+const IWAKAN = [
+  { name:"1から始まる",       steps:[{t:"1"},{t:"2"},{t:"1"}] },
+  { name:"3の色が赤い",       steps:[{t:"3",cls:"red3"},{t:"2"},{t:"1"}] },
+  { name:"キリンさんがいる",   steps:[{t:"3",kirin:true},{t:"2"},{t:"1"}] },
+  { name:"3じゃなくておめでとう", steps:[{t:"おめでとう",cls:"word"},{t:"2"},{t:"1"}] },
+  { name:"3じゃなくてFEVER",  steps:[{t:"FEVER",cls:"word"},{t:"2"},{t:"1"}] },
+  { name:"2から始まる",       steps:[{t:"2"},{t:"1"}] },
+  { name:"3の書体が違う",     steps:[{t:"3",cls:"mincho"},{t:"2"},{t:"1"}] },
+  { name:"漢字の三",          steps:[{t:"三"},{t:"2"},{t:"1"}] },
+];
+const NORMAL_STEPS = [{t:"3"},{t:"2"},{t:"1"}];
+const STEP_MS = 950;
+
+function startRush(player){
+  rush = { player, round: 0, drinks: 0 };
+  $("rush-player").textContent = `${player} 🍺`;
+  showScreen("scr-rush");
+  rushIntro();
+}
+function stage(){ return $("rush-stage"); }
+function actions(){ return $("rush-actions"); }
+function setHud(){
+  const r = rush.round;
+  $("rush-status").textContent =
+    (r <= 1 ? "1回転目" : `${r}連チャン中`) + ` ／ チャージ ${rush.drinks}杯`;
+}
+function rushIntro(){
+  clearRushTimers();
+  actions().innerHTML = "";
+  setHud();
+  stage().innerHTML = `
+    <div class="rush-msg">お酒<span style="color:var(--gold)">RUSH</span></div>
+    <div class="rush-sub">${escapeHtml(rush.player)} の運命やいかに…<br>継続するたび お酒1杯チャージ!</div>`;
+  sndJackpot();
+  const b = document.createElement("button");
+  b.className = "btn red";
+  b.textContent = "カウントダウン開始!";
+  b.addEventListener("click", ()=>{ ensureAudio(); nextRound(); });
+  actions().appendChild(b);
+}
+
+function nextRound(){
+  clearRushTimers();
+  rush.round++;
+  setHud();
+  actions().innerHTML = "";
+
+  // ---- 抽選 ----
+  const isFirst = rush.round === 1;
+  const cont = isFirst ? true : (Math.random()*100 < settings.keizoku);
+  let mode = "normal";   // normal | iwakan | freeze
+  let variant = null;
+  if(cont){
+    if(Math.random()*100 < settings.freeze){
+      mode = "freeze";
+    }else if(Math.random()*100 < settings.iwakan){
+      mode = "iwakan";
+      variant = IWAKAN[Math.floor(Math.random()*IWAKAN.length)];
+    }
+  }
+
+  if(mode === "freeze"){ playFreeze(); return; }
+
+  if(!cont){
+    // ハズレは 3・2・1 をフルで見せてから 7 6 7
+    playCountdown(NORMAL_STEPS, NORMAL_STEPS.length, STEP_MS + 250, revealEnd);
+    return;
+  }
+
+  if(mode === "iwakan"){
+    // 違和感は1コマ目を見せた次の瞬間に777で継続確定!!
+    playCountdown(variant.steps, 1, 450, ()=>revealContinue(variant));
+    return;
+  }
+
+  // 通常継続: 3 / 2 / 1 のどこでカットインするかランダム
+  const cut = 1 + Math.floor(Math.random()*NORMAL_STEPS.length); // 1〜3コマ目
+  playCountdown(NORMAL_STEPS, cut, 450, ()=>revealContinue(null));
+}
+
+// steps のうち showCount コマだけ表示し、最後のコマから lastHold(ms) 後に done
+function playCountdown(steps, showCount, lastHold, done){
+  const n = Math.min(showCount, steps.length);
+  for(let i = 0; i < n; i++){
+    const s = steps[i];
+    rt(()=>{
+      const kirin = s.kirin ? `<div class="count-kirin">🦒</div>` : "";
+      stage().innerHTML =
+        `<div class="count-num ${s.cls||""}">${s.t}</div>${kirin}`;
+      (i === n-1 ? sndCountHi : sndCount)();
+      vibe(25);
+    }, i * STEP_MS);
+  }
+  rt(done, (n-1) * STEP_MS + lastHold);
+}
+
+/* ---- 継続 (777) ---- */
+function revealContinue(variant){
+  // 777は3つ同時にドン!!
+  rush.drinks += 1;
+  setHud();
+  $("scr-rush").classList.add("flash","shake");
+  rt(()=>$("scr-rush").classList.remove("flash","shake"), 600);
+  const iwk = variant ? `<div class="rush-sub">違和感演出「${variant.name}」→ 継続確定!!</div>` : "";
+  stage().innerHTML = `
+    <div class="slot-row">
+      <div class="slot show">7</div>
+      <div class="slot show">7</div>
+      <div class="slot show">7</div>
+    </div>
+    <div class="rush-msg">大当たり!! 継続!!</div>
+    ${iwk}
+    <div class="charge-pop">🍺 お酒 +1杯チャージ (計${rush.drinks}杯)</div>`;
+  sndSlot();
+  sndJackpot();
+  vibe([60,40,60]);
+  const b = document.createElement("button");
+  b.className = "btn red";
+  b.textContent = "次のカウントダウンへ!";
+  b.addEventListener("click", nextRound);
+  actions().appendChild(b);
+}
+
+/* ---- フリーズ (虹・+5杯) ---- */
+function playFreeze(){
+  // 「3」で突然静止 → 暗転 → 虹777
+  stage().innerHTML = `<div class="count-num">3</div>`;
+  sndCount();
+  rt(()=>{
+    $("scr-rush").classList.add("blackout");
+    stage().innerHTML = "";
+  }, STEP_MS * 0.8);
+  rt(()=>{
+    $("scr-rush").classList.remove("blackout");
+    $("scr-rush").classList.add("flash","shake");
+    rt(()=>$("scr-rush").classList.remove("flash","shake"), 600);
+    rush.drinks += 1 + 5; // 継続ぶん +1、フリーズボーナス +5
+    setHud();
+    stage().innerHTML = `
+      <div class="rush-msg rainbow-text" style="font-size:clamp(40px,14vw,64px)">FREEZE!!</div>
+      <div class="slot-row">
+        <div class="slot rainbow show"><span class="rainbow-text">7</span></div>
+        <div class="slot rainbow show"><span class="rainbow-text">7</span></div>
+        <div class="slot rainbow show"><span class="rainbow-text">7</span></div>
+      </div>
+      <div class="rush-msg" style="font-size:clamp(24px,8vw,40px)">虹!! 継続確定!!</div>
+      <div class="charge-pop rainbow-text">🍺 お酒 5杯追加!! (+継続1杯／計${rush.drinks}杯)</div>`;
+    sndFreeze();
+    vibe([80,50,80,50,120]);
+    const b = document.createElement("button");
+    b.className = "btn red";
+    b.textContent = "次のカウントダウンへ!";
+    b.addEventListener("click", nextRound);
+    actions().appendChild(b);
+  }, STEP_MS * 0.8 + 1700);
+}
+
+/* ---- 終了 ---- */
+function revealEnd(){
+  stage().innerHTML = `
+    <div class="slot-row">
+      <div class="slot" id="sl0">7</div>
+      <div class="slot miss" id="sl1">6</div>
+      <div class="slot" id="sl2">7</div>
+    </div>
+    <div id="reveal-area"></div>`;
+  rt(()=>{ $("sl0").classList.add("show"); sndSlot(); }, 200);
+  rt(()=>{ $("sl2").classList.add("show"); sndSlot(); }, 550);
+  rt(()=>{ $("sl1").classList.add("show"); sndFail(); vibe(200); }, 1300);
+  rt(()=>{
+    const chained = rush.round - 1;
+    $("reveal-area").innerHTML = `
+      <div class="rush-msg" style="color:var(--dim);text-shadow:none;">RUSH 終了…</div>
+      <div class="rush-sub">${chained}連チャン ／ チャージ合計</div>
+      <div class="charge-pop">🍺 ${rush.drinks}杯</div>
+      <div class="rush-sub">${escapeHtml(rush.player)} のチャージに追加しました。<br>「飲むよ」から消化できます。</div>`;
+    charges[rush.player] = (charges[rush.player]||0) + rush.drinks;
+    saveCharges();
+    const b1 = document.createElement("button");
+    b1.className = "btn";
+    b1.textContent = "もう一回あそぶ";
+    b1.addEventListener("click", startGame);
+    const b2 = document.createElement("button");
+    b2.className = "btn ghost";
+    b2.textContent = "トップへ";
+    b2.addEventListener("click", ()=>{ refreshTop(); showScreen("scr-top"); });
+    actions().appendChild(b1);
+    actions().appendChild(b2);
+  }, 2100);
+}
+
+/* =========================================================
+   飲むよモーダル
+========================================================= */
+function openDrinkModal(){
+  renderCharges();
+  $("drink-modal").classList.add("open");
+}
+function renderCharges(){
+  const list = $("charge-list");
+  list.innerHTML = "";
+  const entries = Object.entries(charges).filter(([,v])=>v>0);
+  if(entries.length === 0){
+    list.innerHTML = `<div class="empty-note">チャージ中のお酒はありません。<br>ラッシュで貯まったらここに出ます 🍺</div>`;
+    return;
+  }
+  entries.sort((a,b)=>b[1]-a[1]).forEach(([name,cnt])=>{
+    const row = document.createElement("div");
+    row.className = "charge-row";
+    row.innerHTML = `
+      <div class="cname">${escapeHtml(name)}</div>
+      <div class="ccount">${cnt}杯</div>`;
+    const btn = document.createElement("button");
+    btn.className = "drink-btn";
+    btn.textContent = "1杯飲んだ";
+    btn.addEventListener("click", ()=>{
+      charges[name] = Math.max(0, (charges[name]||0) - 1);
+      if(charges[name] === 0) delete charges[name];
+      saveCharges();
+      renderCharges();
+      refreshTop();
+      beep(700,.1,"triangle",.12);
+    });
+    row.appendChild(btn);
+    list.appendChild(row);
+  });
+}
+$("btn-drink-close").addEventListener("click", ()=>$("drink-modal").classList.remove("open"));
+$("drink-modal").addEventListener("click", (e)=>{
+  if(e.target === $("drink-modal")) $("drink-modal").classList.remove("open");
+});
+
+/* =========================================================
+   起動
+========================================================= */
+loadData();
+normalizeNames();
+refreshTop();
+</script>
+</body>
+</html>
