@@ -220,15 +220,11 @@ h1.title span{color:var(--gold);}
   color:#FFF6E3;
   background:radial-gradient(circle at 35% 30%,#FF9C8A 0%,var(--red) 50%,var(--red-deep) 100%);
   box-shadow:0 10px 0 #5F0E0E, 0 22px 40px rgba(0,0,0,.55), inset 0 -8px 20px rgba(0,0,0,.2);
-  animation:pulse 1s ease-in-out infinite;
 }
 .big-btn.stop:active{box-shadow:0 3px 0 #5F0E0E;}
-@keyframes pulse{0%,100%{filter:brightness(1)}50%{filter:brightness(1.18)}}
 .measuring{
   font-size:14px;color:var(--dim);letter-spacing:.3em;height:1.5em;
 }
-.measuring .dots::after{content:"…";animation:dots 1.2s steps(3) infinite;}
-@keyframes dots{0%{content:""}33%{content:"・"}66%{content:"・・"}100%{content:"・・・"}}
 .diff-view{display:none;flex-direction:column;align-items:center;gap:8px;}
 .diff-num{
   font-family:"RocknRoll One",sans-serif;
@@ -317,6 +313,7 @@ h1.title span{color:var(--gold);}
 @keyframes fadeIn{from{opacity:0}to{opacity:1}}
 .slot-row{display:flex;gap:14px;margin:10px 0 22px;}
 .slot{
+  position:relative;
   width:min(24vw,110px);aspect-ratio:.78;
   border-radius:16px;
   background:linear-gradient(180deg,#2C2144,#171028);
@@ -331,6 +328,44 @@ h1.title span{color:var(--gold);}
 .slot.show{opacity:1;animation:slotPop .4s cubic-bezier(.2,1.8,.4,1);}
 @keyframes slotPop{from{transform:translateY(-60px) scale(1.6);opacity:0}to{transform:none;opacity:1}}
 .slot.miss{color:var(--dim);border-color:rgba(255,246,227,.25);box-shadow:none;}
+/* 6が定まらず揺れるリーチ */
+.slot.teeter{color:var(--dim);border-color:rgba(255,246,227,.25);box-shadow:none;}
+.slot.teeter > span{display:inline-block;animation:teeter .45s ease-in-out infinite;}
+@keyframes teeter{
+  0%,100%{transform:translateY(-14%) rotate(-7deg)}
+  50%{transform:translateY(10%) rotate(6deg)}
+}
+/* 斬撃 */
+.slot .slash-line{
+  position:absolute;left:-35%;top:48%;width:170%;height:6px;
+  background:linear-gradient(90deg,transparent,#fff 30%,#fff 70%,transparent);
+  box-shadow:0 0 16px #fff, 0 0 30px var(--gold);
+  transform:rotate(-30deg) scaleX(0);
+  transform-origin:left center;
+  animation:slashHit .16s ease-out forwards;
+  z-index:3;
+}
+@keyframes slashHit{to{transform:rotate(-30deg) scaleX(1)}}
+/* 両断された6 */
+.slot .half{
+  position:absolute;inset:0;
+  display:flex;align-items:center;justify-content:center;
+  color:var(--dim);z-index:2;
+}
+.slot .half.top{
+  clip-path:polygon(0 62%,100% 30%,100% 0,0 0);
+  animation:halfTop .55s ease-in forwards;
+}
+.slot .half.btm{
+  clip-path:polygon(0 62%,100% 30%,100% 100%,0 100%);
+  animation:halfBtm .55s ease-in forwards;
+}
+@keyframes halfTop{to{transform:translate(-34px,-80px) rotate(-16deg);opacity:0}}
+@keyframes halfBtm{to{transform:translate(34px,80px) rotate(14deg);opacity:0}}
+.slot.revive{
+  color:var(--gold);border-color:var(--gold);
+  box-shadow:0 0 26px rgba(245,197,66,.7), inset 0 4px 12px rgba(0,0,0,.6);
+}
 .slot.rainbow{
   border-image:linear-gradient(45deg,#f00,#ff8000,#ff0,#0f0,#0af,#80f) 1;
   border-radius:0;
@@ -614,6 +649,11 @@ function sndFail(){ beep(220,.4,"sawtooth",.09); beep(160,.6,"sawtooth",.09,.25)
 function sndFreeze(){
   [1047,1319,1568,2093,1568,2093,2637].forEach((f,i)=>beep(f,.22,"triangle",.13,i*.09));
 }
+function sndSlash(){
+  beep(2200,.06,"sawtooth",.13);
+  beep(1100,.1,"sawtooth",.12,.05);
+  beep(500,.16,"sawtooth",.1,.11);
+}
 function vibe(p){ if(navigator.vibrate) try{navigator.vibrate(p);}catch(e){} }
 
 /* =========================================================
@@ -729,7 +769,7 @@ $("big-btn").addEventListener("pointerdown", (e)=>{
     stopLockUntil = game.t0 + 600; // 押した直後の誤タップ防止
     btn.textContent = "STOP";
     btn.classList.add("stop");
-    $("measuring").innerHTML = `計測中<span class="dots"></span> 画面から時間はわかりません`;
+    $("measuring").textContent = "計測中 — 画面から時間はわかりません";
     beep(660,.15,"square",.1);
     vibe(30);
   }else if(game.phase === "running"){
@@ -880,9 +920,19 @@ function nextRound(){
     return;
   }
 
-  // 通常継続: 3 / 2 / 1 のどこでカットインするかランダム
-  const cut = 1 + Math.floor(Math.random()*NORMAL_STEPS.length); // 1〜3コマ目
-  playCountdown(NORMAL_STEPS, cut, 450, ()=>revealContinue(null));
+  // 通常継続: 見せ方を抽選
+  const show = Math.random();
+  if(show < 0.15){
+    // 7・6・7が揃って「終了…」→ 6を切り裂いて復活!!
+    playCountdown(NORMAL_STEPS, NORMAL_STEPS.length, STEP_MS + 250, revealSlashRevival);
+  }else if(show < 0.37){
+    // 真ん中が6で止まりかける…「おっはずれかな」→ 7が揃う!!
+    playCountdown(NORMAL_STEPS, NORMAL_STEPS.length, STEP_MS + 250, revealNearMiss);
+  }else{
+    // 3 / 2 / 1 のどこでカットインするかランダムで即777
+    const cut = 1 + Math.floor(Math.random()*NORMAL_STEPS.length);
+    playCountdown(NORMAL_STEPS, cut, 450, ()=>revealContinue(null));
+  }
 }
 
 // steps のうち showCount コマだけ表示し、最後のコマから lastHold(ms) 後に done
@@ -902,23 +952,15 @@ function playCountdown(steps, showCount, lastHold, done){
 }
 
 /* ---- 継続 (777) ---- */
-function revealContinue(variant){
-  // 777は3つ同時にドン!!
+function continueBanner(titleText, subHtml){
   rush.drinks += 1;
   setHud();
   $("scr-rush").classList.add("flash","shake");
   rt(()=>$("scr-rush").classList.remove("flash","shake"), 600);
-  const iwk = variant ? `<div class="rush-sub">違和感演出「${variant.name}」→ 継続確定!!</div>` : "";
-  stage().innerHTML = `
-    <div class="slot-row">
-      <div class="slot show">7</div>
-      <div class="slot show">7</div>
-      <div class="slot show">7</div>
-    </div>
-    <div class="rush-msg">大当たり!! 継続!!</div>
-    ${iwk}
+  $("reveal-area").innerHTML = `
+    <div class="rush-msg">${titleText}</div>
+    ${subHtml||""}
     <div class="charge-pop">🍺 お酒 +1杯チャージ (計${rush.drinks}杯)</div>`;
-  sndSlot();
   sndJackpot();
   vibe([60,40,60]);
   const b = document.createElement("button");
@@ -926,6 +968,98 @@ function revealContinue(variant){
   b.textContent = "次のカウントダウンへ!";
   b.addEventListener("click", nextRound);
   actions().appendChild(b);
+}
+
+function revealContinue(variant){
+  // 777は3つ同時にドン!!
+  stage().innerHTML = `
+    <div class="slot-row">
+      <div class="slot show">7</div>
+      <div class="slot show">7</div>
+      <div class="slot show">7</div>
+    </div>
+    <div id="reveal-area"></div>`;
+  sndSlot();
+  const iwk = variant ? `<div class="rush-sub">違和感演出「${variant.name}」→ 継続確定!!</div>` : "";
+  continueBanner("大当たり!! 継続!!", iwk);
+}
+
+/* ---- 復活1: 真ん中が6で止まりかける → 7が揃う ---- */
+function revealNearMiss(){
+  stage().innerHTML = `
+    <div class="slot-row">
+      <div class="slot" id="sl0">7</div>
+      <div class="slot" id="sl1"><span id="sl1c">6</span></div>
+      <div class="slot" id="sl2">7</div>
+    </div>
+    <div id="reveal-area"></div>`;
+  rt(()=>{ $("sl0").classList.add("show"); sndSlot(); }, 200);
+  rt(()=>{ $("sl2").classList.add("show"); sndSlot(); }, 550);
+  // 6がぐらぐら揺れて止まらない…
+  rt(()=>{
+    const s = $("sl1");
+    s.classList.add("show","teeter");
+    beep(180,.35,"sawtooth",.08);
+    vibe(120);
+  }, 1300);
+  rt(()=>{
+    $("reveal-area").innerHTML =
+      `<div class="rush-sub">おっ…はずれかな……?</div>`;
+  }, 2100);
+  // ……と思ったら7にスコン!!
+  rt(()=>{
+    const s = $("sl1");
+    s.classList.remove("teeter","show");
+    s.classList.add("revive");
+    s.innerHTML = "7";
+    void s.offsetWidth;      // アニメ再発火
+    s.classList.add("show");
+    sndSlot();
+    vibe(60);
+  }, 3100);
+  rt(()=>continueBanner("揃った!! 継続!!",
+      `<div class="rush-sub">はずれかと思った? 甘い!!</div>`), 3450);
+}
+
+/* ---- 復活2: 7・6・7で終了…からの6を切り裂いて復活 ---- */
+function revealSlashRevival(){
+  stage().innerHTML = `
+    <div class="slot-row">
+      <div class="slot" id="sl0">7</div>
+      <div class="slot miss" id="sl1"><span id="sl1c">6</span></div>
+      <div class="slot" id="sl2">7</div>
+    </div>
+    <div id="reveal-area"></div>`;
+  // ハズレと完全に同じ流れで7・6・7を揃える
+  rt(()=>{ $("sl0").classList.add("show"); sndSlot(); }, 200);
+  rt(()=>{ $("sl2").classList.add("show"); sndSlot(); }, 550);
+  rt(()=>{ $("sl1").classList.add("show"); sndFail(); vibe(200); }, 1300);
+  rt(()=>{
+    $("reveal-area").innerHTML =
+      `<div class="rush-msg" style="color:var(--dim);text-shadow:none;">RUSH 終了…</div>`;
+  }, 2100);
+  // ……を、斬る!!
+  rt(()=>{
+    const s = $("sl1");
+    s.innerHTML = `
+      <span class="half top">6</span>
+      <span class="half btm">6</span>
+      <span class="slash-line"></span>`;
+    sndSlash();
+    vibe([40,30,80]);
+  }, 3300);
+  rt(()=>{
+    const s = $("sl1");
+    s.classList.remove("miss","show");
+    s.classList.add("revive");
+    s.innerHTML = "7";
+    void s.offsetWidth;
+    s.classList.add("show");
+    $("reveal-area").innerHTML = "";
+    sndSlot();
+  }, 3850);
+  rt(()=>continueBanner("復活!! 継続!!",
+      `<div class="rush-sub">6を切り裂いて大逆転!!</div>`), 4200);
 }
 
 /* ---- フリーズ (虹・+5杯) ---- */
