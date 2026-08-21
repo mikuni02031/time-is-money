@@ -202,6 +202,22 @@ h1.title span{color:var(--gold);}
   color:var(--gold);border-radius:999px;
   padding:8px 22px;font-weight:900;font-size:17px;
 }
+.chance-banner{
+  display:none;margin-top:14px;
+  font-family:"RocknRoll One",sans-serif;
+}
+.chance-banner.on{display:block;}
+.chance-banner .c-title{
+  font-size:clamp(28px,9vw,40px);
+  color:var(--gold);
+  text-shadow:0 0 16px rgba(245,197,66,.6), 3px 3px 0 var(--red-deep);
+  animation:chanceFlash .5s steps(2) infinite;
+}
+@keyframes chanceFlash{0%{opacity:1}50%{opacity:.35}100%{opacity:1}}
+.chance-banner .c-desc{
+  margin-top:6px;font-size:15px;font-weight:900;color:#FF9C8A;
+  font-family:"Zen Maru Gothic",sans-serif;
+}
 .big-btn-wrap{
   flex:1;display:flex;align-items:center;justify-content:center;width:100%;
   min-height:300px;
@@ -572,6 +588,10 @@ h1.title span{color:var(--gold);}
     <div class="turn-label">つぎの挑戦者</div>
     <div class="turn-name" id="turn-name">プレイヤー1</div>
     <div class="target-badge" id="target-badge">目標 15秒</div>
+    <div class="chance-banner" id="chance-banner">
+      <div class="c-title">チャンス!!</div>
+      <div class="c-desc" id="chance-desc"></div>
+    </div>
 
     <div class="big-btn-wrap">
       <button class="big-btn" id="big-btn">START</button>
@@ -783,21 +803,44 @@ $("btn-settings-back").addEventListener("click", ()=>{
 /* =========================================================
    ゲーム本編
 ========================================================= */
-let game = null; // {idx, results:[{name,diff}], t0, phase}
+let game = null; // {idx, results:[{name,diff,score,fx}], t0, phase, chance, curTarget}
 let stopLockUntil = 0;
+
+const CHANCE_FX = [
+  { desc:"あてる時間が 12.64秒 に変更!!" },
+  { desc:"ズレを ×3 してカウント!!" },
+  { desc:"ズレを ×5 してカウント!!" },
+  { desc:"ズレ0.5秒以内じゃないと強制最下位!!" },
+  { desc:"ズレを 2乗 してカウント!!" }
+];
 
 function startGame(){
   normalizeNames(); saveSettings();
-  game = { idx: 0, results: [], t0: 0, phase: "ready" };
+  game = { idx: 0, results: [], t0: 0, phase: "ready", chance: {}, curTarget: settings.time };
+  settings.names.forEach(n=>{
+    if(/ふか|ぷか/.test(n) && Math.random() < 1/3){
+      game.chance[n] = Math.floor(Math.random()*CHANCE_FX.length);
+    }
+  });
   renderTurn();
   showScreen("scr-game");
 }
 function fmtTime(sec){ return sec === 60 ? "1分" : sec + "秒"; }
 function renderTurn(){
   const name = settings.names[game.idx];
+  const fx = game.chance[name];
+  game.curTarget = fx === 0 ? 12.64 : settings.time;
   $("game-progress").textContent = `${game.idx+1} / ${settings.count} 人目`;
   $("turn-name").textContent = name;
-  $("target-badge").textContent = `目標 ${fmtTime(settings.time)}`;
+  $("target-badge").textContent = `目標 ${fmtTime(game.curTarget)}`;
+  const cb = $("chance-banner");
+  if(fx != null){
+    $("chance-desc").textContent = CHANCE_FX[fx].desc;
+    cb.classList.add("on");
+    sndJackpot();
+  }else{
+    cb.classList.remove("on");
+  }
   const btn = $("big-btn");
   btn.textContent = "START";
   btn.classList.remove("stop");
@@ -816,6 +859,7 @@ $("big-btn").addEventListener("pointerdown", (e)=>{
     stopLockUntil = game.t0 + 600; // 押した直後の誤タップ防止
     btn.textContent = "STOP";
     btn.classList.add("stop");
+    $("chance-banner").classList.remove("on"); // 点滅は時計になるので計測中は消す
     $("measuring").textContent = "計測中 — 画面から時間はわかりません";
     beep(660,.15,"square",.1);
     vibe(30);
@@ -823,9 +867,17 @@ $("big-btn").addEventListener("pointerdown", (e)=>{
     const now = performance.now();
     if(now < stopLockUntil) return;
     const elapsed = (now - game.t0) / 1000;
-    const diff = elapsed - settings.time;
+    const diff = elapsed - game.curTarget;
+    const name = settings.names[game.idx];
+    const fx = game.chance[name];
+    const a = Math.abs(diff);
+    let score = a;
+    if(fx === 1) score = a * 3;
+    else if(fx === 2) score = a * 5;
+    else if(fx === 3) score = a <= 0.5 ? a : Infinity;
+    else if(fx === 4) score = a * a;
     game.phase = "done";
-    game.results.push({ name: settings.names[game.idx], diff });
+    game.results.push({ name, diff, score, fx });
     showDiff(diff);
     vibe(60);
   }
@@ -858,7 +910,7 @@ $("btn-next-player").addEventListener("click", ()=>{
 ========================================================= */
 let loserName = null;
 function showResult(){
-  const sorted = [...game.results].sort((a,b)=>Math.abs(a.diff)-Math.abs(b.diff));
+  const sorted = [...game.results].sort((a,b)=>a.score-b.score);
   loserName = sorted[sorted.length-1].name;
   const list = $("rank-list");
   list.innerHTML = "";
@@ -867,10 +919,17 @@ function showResult(){
     const div = document.createElement("div");
     div.className = "rank-item" + (isOut ? " out" : "");
     const sign = r.diff >= 0 ? "+" : "−";
+    const a = Math.abs(r.diff);
+    let scoreNote = "";
+    if(r.score === Infinity){
+      scoreNote = `<br><small style="color:var(--red);font-size:11px;">チャンス失敗 → 強制最下位</small>`;
+    }else if(r.fx != null && r.score !== a){
+      scoreNote = `<br><small style="color:var(--dim);font-size:11px;">チャンス判定 → ${r.score.toFixed(2)}</small>`;
+    }
     div.innerHTML = `
       <div class="pos">${isOut ? "OUT" : (i+1) + "位"}</div>
       <div class="pname">${escapeHtml(r.name)}${isOut ? ' <span class="out-badge">お酒ラッシュ</span>' : ""}</div>
-      <div class="pdiff">${sign}${Math.abs(r.diff).toFixed(2)}秒</div>`;
+      <div class="pdiff">${sign}${a.toFixed(2)}秒${scoreNote}</div>`;
     list.appendChild(div);
   });
   $("btn-goto-rush").textContent = `${loserName} のお酒ラッシュへ 🍺`;
